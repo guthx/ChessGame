@@ -7,38 +7,6 @@ namespace ChessGame
 {
     public class Pawn : Piece
     {
-        public override bool IsMoveValid(Position src, Position dst, Piece dstPiece)
-        {
-            if(Color == Color.WHITE)
-            {
-                if (src.File == dst.File)
-                {
-                    if (src.Rank == 1 && (dst.Rank == 2 || dst.Rank == 3) && dstPiece == null)
-                        return true;
-                    else if (src.Rank != 1 && dst.Rank - src.Rank == 1 && dstPiece == null)
-                        return true;
-                    else return false;
-                }
-                else if ((dst.File - src.File == 1 || dst.File - src.File == -1)
-                  && dst.Rank - src.Rank == 1 && dstPiece != null)
-                    return true;
-                else return false;
-            } else
-            {
-                if (src.File == dst.File)
-                {
-                    if (src.Rank == 6 && (dst.Rank == 5 || dst.Rank == 4) && dstPiece == null)
-                        return true;
-                    else if (src.Rank != 6 && dst.Rank - src.Rank == -1 && dstPiece == null)
-                        return true;
-                    else return false;
-                }
-                else if ((dst.File - src.File == 1 || dst.File - src.File == -1)
-                  && dst.Rank - src.Rank == -1 && dstPiece != null)
-                    return true;
-                else return false;
-            }
-        }
         public override void FindPseudoValidMoves(Piece[,] board, Position position)
         {
             ValidMoves = new List<Position>();
@@ -83,10 +51,10 @@ namespace ChessGame
                         ValidMoves.Add(new Position(position.File, position.Rank - 1));
                 }
                 if (position.File > 0 && board[position.File - 1, position.Rank - 1] != null
-                    && board[position.File - 1, position.Rank - 1].Color == Color.BLACK)
+                    && board[position.File - 1, position.Rank - 1].Color == Color.WHITE)
                     ValidMoves.Add(new Position(position.File - 1, position.Rank - 1));
                 if (position.File < 7 && board[position.File + 1, position.Rank - 1] != null
-                    && board[position.File + 1, position.Rank - 1].Color == Color.BLACK)
+                    && board[position.File + 1, position.Rank - 1].Color == Color.WHITE)
                     ValidMoves.Add(new Position(position.File + 1, position.Rank - 1));
             }
         }
@@ -118,7 +86,7 @@ namespace ChessGame
                 {
                     for (int r = 0; r < 8; r++)
                     {
-                        if (board[f, r].GetType() == typeof(King) && board[f, r].Color == this.Color)
+                        if (board[f, r] != null && board[f, r].GetType() == typeof(King) && board[f, r].Color == this.Color)
                         {
                             return new Position(f, r);
                         }
@@ -132,13 +100,18 @@ namespace ChessGame
             {
                 var newBoard = (Piece[,])board.Clone();
                 newBoard[move.File, move.Rank] = this;
+                newBoard[position.File, position.Rank] = null;
                 foreach(var piece in attackingPieces)
                 {
-                    newBoard[piece.File, piece.Rank].FindPseudoValidMoves(newBoard, piece);
-                    foreach(var attack in newBoard[piece.File, piece.Rank].ValidMoves)
+                    if(piece.File != move.File && piece.Rank != move.Rank)
                     {
-                        if (attack.File == king.File && attack.Rank == king.Rank)
-                            ValidMoves.Remove(move);
+                        newBoard[piece.File, piece.Rank].FindPseudoValidMoves(newBoard, piece);
+                        foreach (var attack in newBoard[piece.File, piece.Rank].ValidMoves)
+                        {
+                            if (attack.File == king.File && attack.Rank == king.Rank)
+                                ValidMoves.Remove(move);
+                        }
+                        board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
                     }
                 }
             }

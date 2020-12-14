@@ -10,12 +10,12 @@ namespace ChessGame
         public Color Color { get; }
         public List<Position> ValidMoves;
         //public Position Position;
-        abstract public bool IsMoveValid(Position src, Position dst, Piece dstPiece);
         abstract public void FindPseudoValidMoves(Piece[,] board, Position position);
         abstract public void FindValidMoves(Piece[,] board, Position position);
         public Piece(Color color)
         {
             Color = color;
+            ValidMoves = new List<Position>();
         }
     }
 }
