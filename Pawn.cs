@@ -58,6 +58,7 @@ namespace ChessGame
                     ValidMoves.Add(new Position(position.File + 1, position.Rank - 1));
             }
         }
+        /*
         public override void FindValidMoves(Piece[,] board, Position position)
         {
             FindPseudoValidMoves(board, position);
@@ -116,6 +117,7 @@ namespace ChessGame
                 }
             }
         }
+        */
         public Pawn(Color color):base(color) { }
     }
 }

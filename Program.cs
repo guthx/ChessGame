@@ -8,6 +8,7 @@ namespace ChessGame
         static void Main(string[] args)
         {
             var state = new Gamestate();
+            Console.BackgroundColor = ConsoleColor.DarkYellow;
             while (true)
             {
                 for(int r=7; r>=0; r--)
@@ -15,7 +16,7 @@ namespace ChessGame
                     for(int f=0; f<8; f++)
                     {
                        
-                        char symbol = 'x';
+                        char symbol = ' ';
                         if (state.Board[f, r] != null)
                         {
                             
@@ -27,8 +28,16 @@ namespace ChessGame
                                 case "ChessGame.King":
                                     symbol = 'K';
                                     break;
+                                case "ChessGame.Rook":
+                                    symbol = 'R';
+                                    break;
                             }
+                            if (state.Board[f, r].Color == Color.WHITE)
+                                Console.ForegroundColor = ConsoleColor.White;
+                            else
+                                Console.ForegroundColor = ConsoleColor.Black;
                         }
+                        
                         Console.Write(symbol + " ");
                     }
                     Console.Write('\n');
