@@ -22,6 +22,7 @@ namespace ChessGame
                 {
                     if (board[f, r] != null && board[f, r].Color != this.Color)
                     {
+                        /*
                         foreach (var move in board[f, r].ValidMoves)
                         {
                             if (position.File == move.File && position.Rank == move.Rank)
@@ -29,7 +30,8 @@ namespace ChessGame
                                 attackingPieces.Add(new Position(f, r));
                                 break;
                             }
-                        }
+                        }*/
+                        attackingPieces.Add(new Position(f, r));
                     }
                 }
             }
@@ -56,7 +58,7 @@ namespace ChessGame
                 newBoard[position.File, position.Rank] = null;
                 foreach (var piece in attackingPieces)
                 {
-                    if (piece.File != move.File && piece.Rank != move.Rank)
+                    if (!(piece.File == move.File && piece.Rank == move.Rank))
                     {
                         newBoard[piece.File, piece.Rank].FindPseudoValidMoves(newBoard, piece);
                         foreach (var attack in newBoard[piece.File, piece.Rank].ValidMoves)

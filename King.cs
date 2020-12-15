@@ -42,7 +42,7 @@ namespace ChessGame
                 newBoard[position.File, position.Rank] = null;
                 foreach(var piece in enemyPieces)
                 {
-                    if(piece.File != move.File && piece.Rank != move.Rank)
+                    if(!(piece.File == move.File && piece.Rank == move.Rank))
                     {
                         newBoard[piece.File, piece.Rank].FindPseudoValidMoves(newBoard, piece);
                         if (newBoard[piece.File, piece.Rank].ValidMoves.Find(m => m.File == move.File && m.Rank == move.Rank) != null)
@@ -54,8 +54,8 @@ namespace ChessGame
                     }
                 }
             }
-            ValidMoves.RemoveAll(m => movesToDelete.Find(mov => mov.File == m.File && mov.Rank == m.Rank) != null);
-            
+            ValidMoves.RemoveAll(m => movesToDelete.Contains(m));
+
         }
         public King(Color color) : base(color) { }
     }
