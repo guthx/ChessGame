@@ -31,6 +31,15 @@ namespace ChessGame
                                 case "ChessGame.Rook":
                                     symbol = 'R';
                                     break;
+                                case "ChessGame.Knight":
+                                    symbol = 'N';
+                                    break;
+                                case "ChessGame.Bishop":
+                                    symbol = 'B';
+                                    break;
+                                case "ChessGame.Queen":
+                                    symbol = 'Q';
+                                    break;
                             }
                             if (state.Board[f, r].Color == Color.WHITE)
                                 Console.ForegroundColor = ConsoleColor.White;
@@ -67,6 +76,35 @@ namespace ChessGame
                             case MoveResult.MOVED:
                                 moved = true;
                                 break;
+                        }
+                    } else
+                    {
+                        string pattern2 = @"[A-H][1-8]";
+                        match = Regex.Match(move, pattern2);
+                        if (match.Success)
+                        {
+                            var piece = new Position(match.Value[0], int.Parse(match.Value[1].ToString()));
+                            if(state.Board[piece.File, piece.Rank] != null && state.Board[piece.File, piece.Rank].Color == state.ToMove)
+                            {
+                                var validMoves = state.Board[piece.File, piece.Rank].ValidMoves;
+                                if(validMoves.Count != 0)
+                                {
+                                    Console.WriteLine($"Valid moves for {match.Value}:");
+                                    foreach(var validMove in validMoves)
+                                    {
+                                        Console.Write(validMove.ToString() + " ");
+                                    }
+                                    Console.Write("\n");
+                                } else
+                                {
+                                    Console.WriteLine($"No valid moves for {match.Value}");
+                                }
+                                
+                                
+                            } else
+                            {
+                                Console.WriteLine($"No ally piece on {match.Value}");
+                            }
                         }
                     }
                 }

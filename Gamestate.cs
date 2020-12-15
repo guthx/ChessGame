@@ -22,6 +22,11 @@ namespace ChessGame
             Board[4, 0] = new King(Color.WHITE);
             Board[0, 0] = new Rook(Color.WHITE);
             Board[7, 0] = new Rook(Color.WHITE);
+            Board[1, 0] = new Knight(Color.WHITE);
+            Board[6, 0] = new Knight(Color.WHITE);
+            Board[2, 0] = new Bishop(Color.WHITE);
+            Board[5, 0] = new Bishop(Color.WHITE);
+            Board[3, 0] = new Queen(Color.WHITE);
             //initialize black side
             for(int f=0; f<8; f++)
             {
@@ -30,6 +35,11 @@ namespace ChessGame
             Board[4, 7] = new King(Color.BLACK);
             Board[0, 7] = new Rook(Color.BLACK);
             Board[7, 7] = new Rook(Color.BLACK);
+            Board[1, 7] = new Knight(Color.BLACK);
+            Board[6, 7] = new Knight(Color.BLACK);
+            Board[2, 7] = new Bishop(Color.BLACK);
+            Board[5, 7] = new Bishop(Color.BLACK);
+            Board[3, 7] = new Queen(Color.BLACK);
             for(int f=0; f<8; f++)
             {
                 for(int r=0; r<8; r++)
