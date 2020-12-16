@@ -9,10 +9,10 @@ namespace ChessGame
     {
         public Color Color { get; }
         public List<Position> ValidMoves;
-        public bool hasMoved;
+        public int lastMoved;
         //public Position Position;
         abstract public void FindPseudoValidMoves(Piece[,] board, Position position);
-        virtual public void FindValidMoves(Piece[,] board, Position position)
+        virtual public void FindValidMoves(Piece[,] board, Position position, int turnCount)
         {
             FindPseudoValidMoves(board, position);
             // verify which enemy pieces attack your piece (before moving)
@@ -78,7 +78,7 @@ namespace ChessGame
         {
             Color = color;
             ValidMoves = new List<Position>();
-            hasMoved = false;
+            lastMoved = 0;
         }
     }
 }

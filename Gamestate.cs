@@ -9,9 +9,11 @@ namespace ChessGame
     {
         public Color ToMove;
         public Piece[,] Board;
+        public int TurnCount;
 
         public Gamestate()
         {
+            TurnCount = 1;
             ToMove = Color.WHITE;
             Board = new Piece[8, 8];
             //initialize white side
@@ -47,7 +49,7 @@ namespace ChessGame
                     if (Board[f, r] != null)
                     {
                         Board[f, r].ValidMoves = new List<Position>();
-                        Board[f, r].FindValidMoves(Board, new Position(f, r));
+                        Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount);
                     }
                         
                 }
@@ -68,7 +70,7 @@ namespace ChessGame
             {
                 Board[dst.File, dst.Rank] = piece;
                 Board[src.File, src.Rank] = null;
-                piece.hasMoved = true;
+                piece.lastMoved = TurnCount;
                 //check if castling and move rook if necessarry
                 if (piece.GetType() == typeof(King))
                 {
@@ -77,16 +79,39 @@ namespace ChessGame
                     {
                         Board[5, src.Rank] = Board[7, src.Rank];
                         Board[7, src.Rank] = null;
-                        Board[5, src.Rank].hasMoved = true;
+                        Board[5, src.Rank].lastMoved = TurnCount;
                     }
                     //queenside castle
                     if(dst.File - src.File == -2)
                     {
                         Board[3, src.Rank] = Board[0, src.Rank];
                         Board[0, src.Rank] = null;
-                        Board[3, src.Rank].hasMoved = true;
+                        Board[3, src.Rank].lastMoved = TurnCount;
                     }
                 }
+                //check for en-passant
+                if(piece.GetType() == typeof(Pawn))
+                {
+                    int fOffset = dst.File - src.File;
+                    if(fOffset != 0 && Board[dst.File, src.Rank] != null &&
+                        Board[dst.File, src.Rank].GetType() == typeof(Pawn) &&
+                        Board[dst.File, src.Rank].Color != piece.Color &&
+                        Board[dst.File, src.Rank].lastMoved == TurnCount - 1 &&
+                        ((Pawn)Board[dst.File, src.Rank]).hasDoubleMoved)
+                    {
+                        Board[dst.File, src.Rank] = null;
+                    }
+                }
+
+                //flag pawn for doublemove
+                if(piece.GetType() == typeof(Pawn))
+                {
+                    if (Math.Abs(src.Rank - dst.Rank) == 2)
+                        ((Pawn)piece).hasDoubleMoved = true;
+                    else
+                        ((Pawn)piece).hasDoubleMoved = false;
+                }
+                TurnCount++;
                 if (ToMove == Color.WHITE)
                 {
                     ToMove = Color.BLACK;
@@ -103,7 +128,7 @@ namespace ChessGame
                         for (int r = 0; r < 8; r++)
                         {
                             if (Board[f, r] != null && Board[f, r].Color == Color.BLACK)
-                                Board[f, r].FindValidMoves(Board, new Position(f, r));
+                                Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount);
                         }
                     }
                 }
@@ -124,11 +149,11 @@ namespace ChessGame
                         for (int r = 0; r < 8; r++)
                         {
                             if (Board[f, r] != null && Board[f, r].Color == Color.WHITE)
-                                Board[f, r].FindValidMoves(Board, new Position(f, r));
+                                Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount);
                         }
                     }
                 }
-                    
+                
                 return MoveResult.MOVED;
             }
         }

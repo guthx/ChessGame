@@ -7,6 +7,7 @@ namespace ChessGame
 {
     public class Pawn : Piece
     {
+        public bool hasDoubleMoved;
         public override void FindPseudoValidMoves(Piece[,] board, Position position)
         {
             ValidMoves = new List<Position>();
@@ -57,27 +58,66 @@ namespace ChessGame
                     && board[position.File + 1, position.Rank - 1].Color == Color.WHITE)
                     ValidMoves.Add(new Position(position.File + 1, position.Rank - 1));
             }
+
+
         }
-        /*
-        public override void FindValidMoves(Piece[,] board, Position position)
+        
+        public override void FindValidMoves(Piece[,] board, Position position, int turnCount)
         {
             FindPseudoValidMoves(board, position);
+            //check for en passant
+            //white pawn
+            if (this.Color == Color.WHITE && position.Rank == 4)
+            {
+                //take left-side pawn
+                if (position.File > 0 && board[position.File - 1, position.Rank] != null &&
+                    board[position.File - 1, position.Rank].GetType() == typeof(Pawn) &&
+                    board[position.File - 1, position.Rank].Color == Color.BLACK &&
+                    board[position.File - 1, position.Rank].lastMoved == turnCount - 1)
+                    ValidMoves.Add(new Position(position.File - 1, position.Rank + 1));
+                //take right-side pawn
+                if (position.File < 7 && board[position.File + 1, position.Rank] != null &&
+                    board[position.File + 1, position.Rank].GetType() == typeof(Pawn) &&
+                    board[position.File + 1, position.Rank].Color == Color.BLACK &&
+                    board[position.File + 1, position.Rank].lastMoved == turnCount - 1)
+                    ValidMoves.Add(new Position(position.File + 1, position.Rank + 1));
+            }
+            //black pawn
+            if (this.Color == Color.BLACK && position.Rank == 3)
+            {
+                //take left-side pawn
+                if (position.File > 0 && board[position.File - 1, position.Rank] != null &&
+                    board[position.File - 1, position.Rank].GetType() == typeof(Pawn) &&
+                    board[position.File - 1, position.Rank].Color == Color.WHITE &&
+                    board[position.File - 1, position.Rank].lastMoved == turnCount - 1)
+                    ValidMoves.Add(new Position(position.File - 1, position.Rank - 1));
+                //take right-side pawn
+                if (position.File < 7 && board[position.File + 1, position.Rank] != null &&
+                    board[position.File + 1, position.Rank].GetType() == typeof(Pawn) &&
+                    board[position.File + 1, position.Rank].Color == Color.WHITE &&
+                    board[position.File + 1, position.Rank].lastMoved == turnCount - 1)
+                    ValidMoves.Add(new Position(position.File + 1, position.Rank - 1));
+            }
+
+            
             // verify which enemy pieces attack your piece (before moving)
             List<Position> attackingPieces = new List<Position>();
-            for (int f = 0; f<8; f++)
+            for (int f = 0; f < 8; f++)
             {
-                for(int r=0; r<8; r++)
+                for (int r = 0; r < 8; r++)
                 {
-                    if(board[f, r] != null && board[f, r].Color != this.Color)
+                    if (board[f, r] != null && board[f, r].Color != this.Color)
                     {
-                        foreach(var move in board[f, r].ValidMoves)
+                        /*
+                        foreach (var move in board[f, r].ValidMoves)
                         {
-                            if(position.File == move.File && position.Rank == move.Rank)
+                            if (position.File == move.File && position.Rank == move.Rank)
                             {
                                 attackingPieces.Add(new Position(f, r));
                                 break;
                             }
-                        }
+                        }*/
+                        attackingPieces.Add(new Position(f, r));
                     }
                 }
             }
@@ -96,28 +136,33 @@ namespace ChessGame
                 return null;
             }
             Position king = findKing();
-           
-            foreach(var move in ValidMoves)
+            var movesToDelete = new List<Position>();
+            foreach (var move in ValidMoves)
             {
                 var newBoard = (Piece[,])board.Clone();
                 newBoard[move.File, move.Rank] = this;
                 newBoard[position.File, position.Rank] = null;
-                foreach(var piece in attackingPieces)
+                foreach (var piece in attackingPieces)
                 {
-                    if(piece.File != move.File && piece.Rank != move.Rank)
+                    if (!(piece.File == move.File && piece.Rank == move.Rank))
                     {
                         newBoard[piece.File, piece.Rank].FindPseudoValidMoves(newBoard, piece);
                         foreach (var attack in newBoard[piece.File, piece.Rank].ValidMoves)
                         {
                             if (attack.File == king.File && attack.Rank == king.Rank)
-                                ValidMoves.Remove(move);
+                                if (!movesToDelete.Contains(move))
+                                    movesToDelete.Add(move);
                         }
-                        board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
+                        //board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
                     }
                 }
             }
+            ValidMoves.RemoveAll(m => movesToDelete.Contains(m));
         }
-        */
-        public Pawn(Color color):base(color) { }
+        
+        public Pawn(Color color):base(color) 
+        {
+            hasDoubleMoved = false;
+        }
     }
 }

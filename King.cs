@@ -22,7 +22,7 @@ namespace ChessGame
             }
         }
 
-        public override void FindValidMoves(Piece[,] board, Position position)
+        public override void FindValidMoves(Piece[,] board, Position position, int turnCount)
         {
             FindPseudoValidMoves(board, position);
             var enemyPieces = new List<Position>();
@@ -90,13 +90,13 @@ namespace ChessGame
                 }
                 return false;
             }
-            if (!hasMoved)
+            if (lastMoved == 0)
             {
                 //white king kingside castle
                 var squares = new Position[3] { new Position('E', 1), new Position('F', 1), new Position('G', 1) };
                 if (this.Color == Color.WHITE && board[5, 0] == null && board[6, 0] == null &&
                     board[7, 0] != null && board[7, 0].GetType() == typeof(Rook) &&
-                    board[7, 0].Color == Color.WHITE && !board[7, 0].hasMoved &&
+                    board[7, 0].Color == Color.WHITE && board[7, 0].lastMoved == 0 &&
                     !areSquaresAttacked(squares))
                     ValidMoves.Add(new Position('G', 1));
                 //white king queenside castle
@@ -104,7 +104,7 @@ namespace ChessGame
                 squares[2] = new Position('C', 1);
                 if (this.Color == Color.WHITE && board[1, 0] == null && board[2, 0] == null && board[3, 0] == null &&
                     board[0, 0] != null && board[0, 0].GetType() == typeof(Rook) &&
-                    board[0, 0].Color == Color.WHITE && !board[0, 0].hasMoved &&
+                    board[0, 0].Color == Color.WHITE && board[0, 0].lastMoved == 0 &&
                     !areSquaresAttacked(squares))
                     ValidMoves.Add(new Position('C', 1));
                 //black king kingside castle
@@ -113,7 +113,7 @@ namespace ChessGame
                 squares[2] = new Position('G', 8);
                 if (this.Color == Color.BLACK && board[5, 7] == null && board[6, 7] == null &&
                     board[7, 7] != null && board[7, 7].GetType() == typeof(Rook) &&
-                    board[7, 7].Color == Color.BLACK && !board[7, 7].hasMoved &&
+                    board[7, 7].Color == Color.BLACK && board[7, 7].lastMoved == 0 &&
                     !areSquaresAttacked(squares))
                     ValidMoves.Add(new Position('G', 8));
                 //black king queenside castle
@@ -121,7 +121,7 @@ namespace ChessGame
                 squares[2] = new Position('C', 8);
                 if (this.Color == Color.BLACK && board[1, 7] == null && board[2, 7] == null && board[3, 7] == null &&
                     board[0, 7] != null && board[0, 7].GetType() == typeof(Rook) &&
-                    board[0, 7].Color == Color.BLACK && !board[0, 7].hasMoved &&
+                    board[0, 7].Color == Color.BLACK && board[0, 7].lastMoved == 0 &&
                     !areSquaresAttacked(squares))
                     ValidMoves.Add(new Position('C', 8));
 
