@@ -68,6 +68,25 @@ namespace ChessGame
             {
                 Board[dst.File, dst.Rank] = piece;
                 Board[src.File, src.Rank] = null;
+                piece.hasMoved = true;
+                //check if castling and move rook if necessarry
+                if (piece.GetType() == typeof(King))
+                {
+                    //kingside castle
+                    if(dst.File - src.File == 2)
+                    {
+                        Board[5, src.Rank] = Board[7, src.Rank];
+                        Board[7, src.Rank] = null;
+                        Board[5, src.Rank].hasMoved = true;
+                    }
+                    //queenside castle
+                    if(dst.File - src.File == -2)
+                    {
+                        Board[3, src.Rank] = Board[0, src.Rank];
+                        Board[0, src.Rank] = null;
+                        Board[3, src.Rank].hasMoved = true;
+                    }
+                }
                 if (ToMove == Color.WHITE)
                 {
                     ToMove = Color.BLACK;

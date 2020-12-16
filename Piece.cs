@@ -9,6 +9,7 @@ namespace ChessGame
     {
         public Color Color { get; }
         public List<Position> ValidMoves;
+        public bool hasMoved;
         //public Position Position;
         abstract public void FindPseudoValidMoves(Piece[,] board, Position position);
         virtual public void FindValidMoves(Piece[,] board, Position position)
@@ -67,7 +68,7 @@ namespace ChessGame
                                 if (!movesToDelete.Contains(move))
                                     movesToDelete.Add(move);
                         }
-                        board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
+                        //board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
                     }
                 }
             }
@@ -77,6 +78,7 @@ namespace ChessGame
         {
             Color = color;
             ValidMoves = new List<Position>();
+            hasMoved = false;
         }
     }
 }
