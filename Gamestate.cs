@@ -4,15 +4,18 @@ using System.Text;
 
 namespace ChessGame
 {
-    public enum MoveResult { MOVED, NO_PIECE, WRONG_COLOR, INVALID_MOVE };
+    public enum MoveResult { MOVED, NO_PIECE, WRONG_COLOR, INVALID_MOVE, AWAITING_PROMOTION, CHECKMATE };
+    public enum PieceType { KNIGHT, BISHOP, ROOK, QUEEN }
     public class Gamestate
     {
         public Color ToMove;
         public Piece[,] Board;
         public int TurnCount;
-
+        public Position awaitingPromotion;
+        private bool Checkmate;
         public Gamestate()
         {
+            Checkmate = false;
             TurnCount = 1;
             ToMove = Color.WHITE;
             Board = new Piece[8, 8];
@@ -57,6 +60,30 @@ namespace ChessGame
 
         }
 
+        public MoveResult Promote(PieceType piece)
+        {
+            if(awaitingPromotion != null)
+            {
+                switch (piece)
+                {
+                    case PieceType.KNIGHT:
+                        Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Knight(ToMove);
+                        break;
+                    case PieceType.BISHOP:
+                        Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Bishop(ToMove);
+                        break;
+                    case PieceType.ROOK:
+                        Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Rook(ToMove);
+                        break;
+                    case PieceType.QUEEN:
+                        Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Queen(ToMove);
+                        break;
+                }
+                awaitingPromotion = null;
+                return SwapPlayer();
+            }
+            return MoveResult.NO_PIECE;
+        } 
         public MoveResult Move(Position src, Position dst)
         {
             var piece = Board[src.File, src.Rank];
@@ -89,9 +116,10 @@ namespace ChessGame
                         Board[3, src.Rank].lastMoved = TurnCount;
                     }
                 }
-                //check for en-passant
+                
                 if(piece.GetType() == typeof(Pawn))
                 {
+                    //check for en-passant
                     int fOffset = dst.File - src.File;
                     if(fOffset != 0 && Board[dst.File, src.Rank] != null &&
                         Board[dst.File, src.Rank].GetType() == typeof(Pawn) &&
@@ -101,61 +129,86 @@ namespace ChessGame
                     {
                         Board[dst.File, src.Rank] = null;
                     }
-                }
 
-                //flag pawn for doublemove
-                if(piece.GetType() == typeof(Pawn))
-                {
+                    //flag pawns that moved two squares
                     if (Math.Abs(src.Rank - dst.Rank) == 2)
                         ((Pawn)piece).hasDoubleMoved = true;
                     else
                         ((Pawn)piece).hasDoubleMoved = false;
-                }
-                TurnCount++;
-                if (ToMove == Color.WHITE)
-                {
-                    ToMove = Color.BLACK;
-                    for (int f = 0; f < 8; f++)
+
+                    //check for promotion
+                    if(dst.Rank == 0 || dst.Rank == 7)
                     {
-                        for (int r = 0; r < 8; r++)
-                        {
-                            if (Board[f, r] != null && Board[f, r].Color == Color.WHITE)
-                                Board[f, r].FindPseudoValidMoves(Board, new Position(f, r));
-                        }
-                    }
-                    for (int f = 0; f < 8; f++)
-                    {
-                        for (int r = 0; r < 8; r++)
-                        {
-                            if (Board[f, r] != null && Board[f, r].Color == Color.BLACK)
-                                Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount);
-                        }
+                        awaitingPromotion = new Position(dst.File, dst.Rank);
+                        return MoveResult.AWAITING_PROMOTION;
                     }
                 }
 
-                else
+                return SwapPlayer();
+
+                
+            }
+        }
+
+        private MoveResult SwapPlayer()
+        {
+            Checkmate = true;
+            TurnCount++;
+            if (ToMove == Color.WHITE)
+            {
+                ToMove = Color.BLACK;
+                for (int f = 0; f < 8; f++)
                 {
-                    ToMove = Color.WHITE;
-                    for (int f = 0; f < 8; f++)
+                    for (int r = 0; r < 8; r++)
                     {
-                        for (int r = 0; r < 8; r++)
-                        {
-                            if (Board[f, r] != null && Board[f, r].Color == Color.BLACK)
-                                Board[f, r].FindPseudoValidMoves(Board, new Position(f, r));
-                        }
-                    }
-                    for (int f = 0; f < 8; f++)
-                    {
-                        for (int r = 0; r < 8; r++)
-                        {
-                            if (Board[f, r] != null && Board[f, r].Color == Color.WHITE)
-                                Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount);
-                        }
+                        if (Board[f, r] != null && Board[f, r].Color == Color.WHITE)
+                            Board[f, r].FindPseudoValidMoves(Board, new Position(f, r));
                     }
                 }
-                
-                return MoveResult.MOVED;
+                for (int f = 0; f < 8; f++)
+                {
+                    for (int r = 0; r < 8; r++)
+                    {
+                        if (Board[f, r] != null && Board[f, r].Color == Color.BLACK)
+                        {
+                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount);
+                            if (Board[f, r].ValidMoves.Count > 0)
+                                Checkmate = false;
+                        }
+
+                    }
+                }
             }
+
+            else
+            {
+                ToMove = Color.WHITE;
+                for (int f = 0; f < 8; f++)
+                {
+                    for (int r = 0; r < 8; r++)
+                    {
+                        if (Board[f, r] != null && Board[f, r].Color == Color.BLACK)
+                            Board[f, r].FindPseudoValidMoves(Board, new Position(f, r));
+                    }
+                }
+                for (int f = 0; f < 8; f++)
+                {
+                    for (int r = 0; r < 8; r++)
+                    {
+                        if (Board[f, r] != null && Board[f, r].Color == Color.WHITE)
+                        {
+                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount);
+                            if (Board[f, r].ValidMoves.Count > 0)
+                                Checkmate = false;
+                        }
+
+                    }
+                }
+            }
+            if (Checkmate == false)
+                return MoveResult.MOVED;
+            else
+                return MoveResult.CHECKMATE;
         }
     }
 }
