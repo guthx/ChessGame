@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ChessGame": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\Guth\\source\\repos\\ChessGame"
+    }
+  }
+}

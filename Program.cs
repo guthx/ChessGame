@@ -1,13 +1,21 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace ChessGame
 {
     class Program
     {
-        
-        static void Main(string[] args)
+        [STAThread]
+        static void Main()
         {
+
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Form1());
+
+            /*
             var state = new Gamestate();
 
             MoveResult promote()
@@ -179,6 +187,7 @@ namespace ChessGame
                     Console.ReadLine();
                 }
             } 
+            */
         }
     }
 }
