@@ -44,6 +44,11 @@ namespace ChessGame
                 { 2, -1 },
                 { 2, 1 }
             };
+            Type = PieceType.KNIGHT;
+            if (color == Color.WHITE)
+                Symbol = 'N';
+            else
+                Symbol = 'n';
         }
     }
 }

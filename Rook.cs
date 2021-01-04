@@ -113,6 +113,13 @@ namespace ChessGame
             else return false;
         }
 
-        public Rook(Color color) : base(color) { }
+        public Rook(Color color) : base(color)
+        {
+            Type = PieceType.ROOK;
+            if (color == Color.WHITE)
+                Symbol = 'R';
+            else
+                Symbol = 'r';
+        }
     }
 }

@@ -25,6 +25,13 @@ namespace ChessGame
             return rook.IsAttackingSquare(position, square, board) || bishop.IsAttackingSquare(position, square, board);
         }
 
-        public Queen(Color color) : base(color) { }
+        public Queen(Color color) : base(color)
+        {
+            Type = PieceType.QUEEN;
+            if (color == Color.WHITE)
+                Symbol = 'Q';
+            else
+                Symbol = 'q';
+        }
     }
 }

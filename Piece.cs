@@ -8,13 +8,15 @@ namespace ChessGame
     abstract public class Piece
     {
         public Color Color { get; }
+        public PieceType Type;
+        public char Symbol;
         public List<Position> ValidMoves;
         public int lastMoved;
         //public Position Position;
 
         abstract public bool IsAttackingSquare(Position position, Position square, Piece[,] board);
         abstract public void FindPseudoValidMoves(Piece[,] board, Position position);
-        virtual public void FindValidMoves(Piece[,] board, Position position, int turnCount, Position king, List<Position> attackingPieces)
+        virtual public void FindValidMoves(Piece[,] board, Position position, int turnCount, Position king, List<Position> attackingPieces, ref Position enPassant)
         {
             FindPseudoValidMoves(board, position);
             // verify which enemy pieces attack your piece (before moving)

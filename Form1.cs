@@ -118,7 +118,7 @@ namespace ChessGame
                     result = Gamestate.Promote(PieceType.BISHOP);
                 else if (squarePosition.Rank == 4 || squarePosition.Rank == 3)
                     result = Gamestate.Promote(PieceType.KNIGHT);
-                if (result == MoveResult.MOVED || result == MoveResult.CHECKMATE)
+                if (result == MoveResult.MOVED || result == MoveResult.GAME_OVER)
                     UpdateBoard();
             }
             

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace ChessGame
 {
-    public enum MoveResult { MOVED, NO_PIECE, WRONG_COLOR, INVALID_MOVE, AWAITING_PROMOTION, CHECKMATE };
+    public enum GameResult { WHITE_WIN, BLACK_WIN, STALEMATE, DRAW, ACTIVE }
+    public enum MoveResult { MOVED, NO_PIECE, WRONG_COLOR, INVALID_MOVE, AWAITING_PROMOTION, GAME_OVER };
     public enum PieceType { KNIGHT, BISHOP, ROOK, QUEEN, PAWN, KING }
     public class Gamestate
     {
@@ -13,20 +15,37 @@ namespace ChessGame
         public int TurnCount;
         public Position awaitingPromotion;
         public bool GameOver;
+        public GameResult GameResult;
+        public Stopwatch WhiteStopwatch;
+        public Stopwatch BlackStopwatch;
         protected Position WhiteKing;
         protected Position BlackKing;
         protected List<Position> whitePiecesPositions;
         protected List<Position> blackPiecesPositions;
+        public bool WhiteCanCastleQueenside;
+        public bool WhiteCanCastleKingside;
+        public bool BlackCanCastleQueenside;
+        public bool BlackCanCastleKingside;
+        public Position EnPassantPosition;
+        public int HalfMoveCount;
+        public List<string> PositionHistory;
+        private Dictionary<string, int> positionRepetitionCount;
         private bool Checkmate;
         public Gamestate()
         {
+            HalfMoveCount = 0;
+            GameResult = GameResult.ACTIVE;
             GameOver = false; 
             Checkmate = false;
             TurnCount = 1;
             ToMove = Color.WHITE;
             Board = new Piece[8, 8];
+            WhiteStopwatch = new Stopwatch();
+            BlackStopwatch = new Stopwatch();
             whitePiecesPositions = new List<Position>();
             blackPiecesPositions = new List<Position>();
+            PositionHistory = new List<string>();
+            positionRepetitionCount = new Dictionary<string, int>();
             //initialize white side
             for(int f=0; f<8; f++)
             {
@@ -81,12 +100,14 @@ namespace ChessGame
                     {
                         Board[f, r].ValidMoves = new List<Position>();
                         if (r == 0 || r == 1)
-                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, WhiteKing, blackPiecesPositions);
+                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, WhiteKing, blackPiecesPositions, ref EnPassantPosition);
                     }
                         
                 }
             }
-
+            string fen = FEN.GamstateToFEN(this);
+            PositionHistory.Add(fen);
+            positionRepetitionCount.Add(fen, 1);
         }
 
         public MoveResult Promote(PieceType piece)
@@ -115,6 +136,9 @@ namespace ChessGame
         } 
         public MoveResult Move(Position src, Position dst)
         {
+            if (GameOver)
+                return MoveResult.GAME_OVER;
+
             var piece = Board[src.File, src.Rank];
             if (piece == null)
                 return MoveResult.NO_PIECE;
@@ -124,6 +148,9 @@ namespace ChessGame
                 return MoveResult.INVALID_MOVE;
             else
             {
+                
+                if (Board[dst.File, dst.Rank] != null)
+                    HalfMoveCount = 0;
                 Board[dst.File, dst.Rank] = piece;
                 Board[src.File, src.Rank] = null;
                 if (ToMove == Color.WHITE)
@@ -183,6 +210,7 @@ namespace ChessGame
                 if(piece.GetType() == typeof(Pawn))
                 {
                     //check for en-passant
+                    /*
                     int fOffset = dst.File - src.File;
                     if(fOffset != 0 && Board[dst.File, src.Rank] != null &&
                         Board[dst.File, src.Rank].GetType() == typeof(Pawn) &&
@@ -198,6 +226,21 @@ namespace ChessGame
                         {
                             whitePiecesPositions.Remove(new Position(dst.File, src.Rank));
                         }
+                    }
+                    */
+                    if (dst.Equals(EnPassantPosition))
+                    {
+                        if (ToMove == Color.WHITE)
+                        {
+                            Board[dst.File, dst.Rank - 1] = null;
+                            blackPiecesPositions.Remove(new Position(dst.File, dst.Rank - 1));
+                        }
+                        else
+                        {
+                            Board[dst.File, dst.Rank + 1] = null;
+                            whitePiecesPositions.Remove(new Position(dst.File, dst.Rank + 1));
+                        }
+                        HalfMoveCount = 0;
                     }
 
                     //flag pawns that moved two squares
@@ -222,10 +265,13 @@ namespace ChessGame
 
         private MoveResult SwapPlayer()
         {
+            EnPassantPosition = null;
             Checkmate = true;
             TurnCount++;
+            HalfMoveCount++;
             if (ToMove == Color.WHITE)
             {
+                WhiteStopwatch.Stop();
                 ToMove = Color.BLACK;
                 /*
                 for (int f = 0; f < 8; f++)
@@ -243,17 +289,24 @@ namespace ChessGame
                     {
                         if (Board[f, r] != null && Board[f, r].Color == Color.BLACK)
                         {
-                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, BlackKing, whitePiecesPositions);
+                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, BlackKing, whitePiecesPositions, ref EnPassantPosition);
                             if (Board[f, r].ValidMoves.Count > 0)
                                 Checkmate = false;
                         }
 
                     }
                 }
+                King whiteKing = (King)Board[WhiteKing.File, WhiteKing.Rank];
+                bool k, q;
+                (k, q) = whiteKing.CanCastle(WhiteKing, Board, blackPiecesPositions);
+                WhiteCanCastleKingside = k;
+                WhiteCanCastleQueenside = q;
+                BlackStopwatch.Restart();
             }
 
             else
             {
+                BlackStopwatch.Stop();
                 ToMove = Color.WHITE;
                 /*
                 for (int f = 0; f < 8; f++)
@@ -271,20 +324,71 @@ namespace ChessGame
                     {
                         if (Board[f, r] != null && Board[f, r].Color == Color.WHITE)
                         {
-                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, WhiteKing, blackPiecesPositions);
+                            Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, WhiteKing, blackPiecesPositions, ref EnPassantPosition);
                             if (Board[f, r].ValidMoves.Count > 0)
                                 Checkmate = false;
                         }
 
                     }
                 }
+                King blackKing = (King)Board[BlackKing.File, BlackKing.Rank];
+                bool k, q;
+                (k, q) = blackKing.CanCastle(BlackKing, Board, whitePiecesPositions);
+                BlackCanCastleKingside = k;
+                BlackCanCastleQueenside = q;
+                WhiteStopwatch.Restart();
             }
+            string fen = FEN.GamstateToFEN(this);
+            PositionHistory.Add(fen);
+            if (positionRepetitionCount.ContainsKey(fen))
+                positionRepetitionCount[fen] += 1;
+            else
+                positionRepetitionCount[fen] = 1;
             if (Checkmate == false)
-                return MoveResult.MOVED;
+            {
+                if (positionRepetitionCount[fen] == 3 || HalfMoveCount >= 50)
+                {
+                    GameOver = true;
+                    GameResult = GameResult.DRAW;
+                    return MoveResult.GAME_OVER;
+                }
+                else 
+                    return MoveResult.MOVED;
+            }
+                
             else
             {
+                bool stalemate = true;
+                if (ToMove == Color.BLACK)
+                {
+                    foreach(var piece in whitePiecesPositions)
+                    {
+                        if (Board[piece.File, piece.Rank].IsAttackingSquare(piece, BlackKing, Board))
+                        {
+                            stalemate = false;
+                            break;
+                        }
+                    }
+                } else
+                {
+                    foreach (var piece in blackPiecesPositions)
+                    {
+                        if (Board[piece.File, piece.Rank].IsAttackingSquare(piece, WhiteKing, Board))
+                        {
+                            stalemate = false;
+                            break;
+                        }
+                    }
+                }
                 GameOver = true;
-                return MoveResult.CHECKMATE;
+                if (stalemate)
+                    GameResult = GameResult.STALEMATE;
+                else if (ToMove == Color.BLACK)
+                    GameResult = GameResult.WHITE_WIN;
+                else
+                    GameResult = GameResult.BLACK_WIN;
+                    
+                return MoveResult.GAME_OVER;
             }
                 
         }

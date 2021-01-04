@@ -117,6 +117,13 @@ namespace ChessGame
             else return false;
         }
 
-        public Bishop(Color color) : base(color) { }
+        public Bishop(Color color) : base(color)
+        {
+            Type = PieceType.BISHOP;
+            if (color == Color.WHITE)
+                Symbol = 'B';
+            else
+                Symbol = 'b';
+        }
     }
 }
