@@ -64,6 +64,55 @@ namespace ChessGame
             }
         }
 
+        public override bool IsAttackingSquare(Position position, Position square, Piece[,] board)
+        {
+            int fileOffset = square.File - position.File;
+            int rankOffset = square.Rank - position.Rank;
+            if (fileOffset == 0 && rankOffset != 0)
+            {
+                if (rankOffset > 0)
+                {
+                    for (int i=position.Rank+1; i<square.Rank; i++)
+                    {
+                        if (board[square.File, i] != null)
+                            return false;
+                    }
+                    return true;
+                }
+                else
+                {
+                    for (int i = position.Rank - 1; i > square.Rank; i--)
+                    {
+                        if (board[square.File, i] != null)
+                            return false;
+                    }
+                    return true;
+                }
+            }
+            else if (fileOffset != 0 && rankOffset == 0)
+            {
+                if (fileOffset > 0)
+                {
+                    for (int i = position.File + 1; i < square.File; i++)
+                    {
+                        if (board[i, square.Rank] != null)
+                            return false;
+                    }
+                    return true;
+                }
+                else
+                {
+                    for (int i = position.File - 1; i > square.File; i--)
+                    {
+                        if (board[i, square.Rank] != null)
+                            return false;
+                    }
+                    return true;
+                }
+            }
+            else return false;
+        }
+
         public Rook(Color color) : base(color) { }
     }
 }

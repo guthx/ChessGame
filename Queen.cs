@@ -18,6 +18,13 @@ namespace ChessGame
             ValidMoves.AddRange(bishop.ValidMoves);
         }
 
+        public override bool IsAttackingSquare(Position position, Position square, Piece[,] board)
+        {
+            var rook = new Rook(this.Color);
+            var bishop = new Bishop(this.Color);
+            return rook.IsAttackingSquare(position, square, board) || bishop.IsAttackingSquare(position, square, board);
+        }
+
         public Queen(Color color) : base(color) { }
     }
 }

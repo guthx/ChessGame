@@ -22,38 +22,32 @@ namespace ChessGame
             }
         }
 
-        public override void FindValidMoves(Piece[,] board, Position position, int turnCount)
+        public override void FindValidMoves(Piece[,] board, Position position, int turnCount, Position king, List<Position> attackingPieces)
         {
             FindPseudoValidMoves(board, position);
-            var enemyPieces = new List<Position>();
-            for(int f=0; f<8; f++)
-            {
-                for(int r=0; r<8; r++)
-                {
-                    if (board[f, r] != null && board[f, r].Color != this.Color)
-                        enemyPieces.Add(new Position(f, r));
-                }
-            }
+       
             var movesToDelete = new List<Position>();
+
+            board[position.File, position.Rank] = null;
             foreach(var move in ValidMoves)
             {
-                var newBoard = (Piece[,])board.Clone();
-                newBoard[move.File, move.Rank] = this;
-                newBoard[position.File, position.Rank] = null;
-                foreach(var piece in enemyPieces)
+                var previousPiece = board[move.File, move.Rank];
+                board[move.File, move.Rank] = this;
+                foreach(var piece in attackingPieces)
                 {
                     if(!(piece.File == move.File && piece.Rank == move.Rank))
                     {
-                        newBoard[piece.File, piece.Rank].FindPseudoValidMoves(newBoard, piece);
-                        if (newBoard[piece.File, piece.Rank].ValidMoves.Find(m => m.File == move.File && m.Rank == move.Rank) != null)
+                        if (board[piece.File, piece.Rank].IsAttackingSquare(piece, move, board))
                         {
-                            if(movesToDelete.Find(m => m.File == move.File && m.Rank == move.Rank) == null)
-                                movesToDelete.Add(move);
+                            movesToDelete.Add(move);
+                            break;
                         }
                             
                     }
                 }
+                board[move.File, move.Rank] = previousPiece;
             }
+            board[position.File, position.Rank] = this;
             ValidMoves.RemoveAll(m => movesToDelete.Contains(m));
 
             /* check for castling
@@ -79,7 +73,7 @@ namespace ChessGame
             */
             bool areSquaresAttacked(Position[] squares)
             {
-                foreach(var piece in enemyPieces)
+                foreach(var piece in attackingPieces)
                 {
                     board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
                     foreach(var square in squares)
@@ -127,6 +121,15 @@ namespace ChessGame
 
             }
 
+        }
+
+        public override bool IsAttackingSquare(Position position, Position square, Piece[,] board)
+        {
+            int fileOffset = position.File - square.File;
+            int rankOffset = position.Rank - square.Rank;
+            if (fileOffset >= -1 && fileOffset <= 1 && rankOffset >= -1 && rankOffset <= 1)
+                return true;
+            else return false;
         }
         public King(Color color) : base(color) { }
     }

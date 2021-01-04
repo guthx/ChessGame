@@ -92,6 +92,31 @@ namespace ChessGame
             }
         }
 
+        public override bool IsAttackingSquare(Position position, Position square, Piece[,] board)
+        {
+            int fileOffset = square.File - position.File;
+            int rankOffset = square.Rank - position.Rank;
+            if (Math.Abs(fileOffset) == Math.Abs(rankOffset))
+            {
+                int fileDirection;
+                int rankDirection;
+                if (fileOffset > 0)
+                    fileDirection = 1;
+                else fileDirection = -1;
+                if (rankOffset > 0)
+                    rankDirection = 1;
+                else rankDirection = -1;
+
+                for(int i=1; i<Math.Abs(fileOffset); i++)
+                {
+                    if (board[position.File + i * fileDirection, position.Rank + i * rankDirection] != null)
+                        return false;
+                }
+                return true;
+            }
+            else return false;
+        }
+
         public Bishop(Color color) : base(color) { }
     }
 }

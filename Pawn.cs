@@ -62,7 +62,7 @@ namespace ChessGame
 
         }
         
-        public override void FindValidMoves(Piece[,] board, Position position, int turnCount)
+        public override void FindValidMoves(Piece[,] board, Position position, int turnCount, Position king, List<Position> attackingPieces)
         {
             FindPseudoValidMoves(board, position);
             //check for en passant
@@ -98,68 +98,48 @@ namespace ChessGame
                     board[position.File + 1, position.Rank].lastMoved == turnCount - 1)
                     ValidMoves.Add(new Position(position.File + 1, position.Rank - 1));
             }
-
-            
-            // verify which enemy pieces attack your piece (before moving)
-            List<Position> attackingPieces = new List<Position>();
-            for (int f = 0; f < 8; f++)
-            {
-                for (int r = 0; r < 8; r++)
-                {
-                    if (board[f, r] != null && board[f, r].Color != this.Color)
-                    {
-                        /*
-                        foreach (var move in board[f, r].ValidMoves)
-                        {
-                            if (position.File == move.File && position.Rank == move.Rank)
-                            {
-                                attackingPieces.Add(new Position(f, r));
-                                break;
-                            }
-                        }*/
-                        attackingPieces.Add(new Position(f, r));
-                    }
-                }
-            }
-            Position findKing()
-            {
-                for (int f = 0; f < 8; f++)
-                {
-                    for (int r = 0; r < 8; r++)
-                    {
-                        if (board[f, r] != null && board[f, r].GetType() == typeof(King) && board[f, r].Color == this.Color)
-                        {
-                            return new Position(f, r);
-                        }
-                    }
-                }
-                return null;
-            }
-            Position king = findKing();
+   
             var movesToDelete = new List<Position>();
+            board[position.File, position.Rank] = null;
             foreach (var move in ValidMoves)
             {
-                var newBoard = (Piece[,])board.Clone();
-                newBoard[move.File, move.Rank] = this;
-                newBoard[position.File, position.Rank] = null;
+                var previousPiece = board[move.File, move.Rank];
+                board[move.File, move.Rank] = this;
                 foreach (var piece in attackingPieces)
                 {
                     if (!(piece.File == move.File && piece.Rank == move.Rank))
                     {
-                        newBoard[piece.File, piece.Rank].FindPseudoValidMoves(newBoard, piece);
-                        foreach (var attack in newBoard[piece.File, piece.Rank].ValidMoves)
+                        if (board[piece.File, piece.Rank].IsAttackingSquare(piece, king, board))
                         {
-                            if (attack.File == king.File && attack.Rank == king.Rank)
-                                if (!movesToDelete.Contains(move))
-                                    movesToDelete.Add(move);
+                            movesToDelete.Add(move);
+                            break;
                         }
-                        //board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
+
                     }
                 }
+                board[move.File, move.Rank] = previousPiece;
             }
+            board[position.File, position.Rank] = this;
             ValidMoves.RemoveAll(m => movesToDelete.Contains(m));
         }
-        
+
+        public override bool IsAttackingSquare(Position position, Position square, Piece[,] board)
+        {
+            if (board[position.File, position.Rank].Color == Color.WHITE)
+            {
+                int fileOffset = position.File - square.File;
+                if ((fileOffset == -1 || fileOffset == 1) && square.Rank - position.Rank == 1)
+                    return true;
+                else return false;
+            } else
+            {
+                int fileOffset = position.File - square.File;
+                if ((fileOffset == -1 || fileOffset == 1) && square.Rank - position.Rank == -1)
+                    return true;
+                else return false;
+            }
+        }
+
         public Pawn(Color color):base(color) 
         {
             hasDoubleMoved = false;
