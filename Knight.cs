@@ -26,7 +26,7 @@ namespace ChessGame
         public override bool IsAttackingSquare(Position position, Position square, Piece[,] board)
         {
             int absFileOffset = Math.Abs(position.File - square.File);
-            int absRankOffset = Math.Abs(position.File - square.File);
+            int absRankOffset = Math.Abs(position.Rank - square.Rank);
             if ((absFileOffset == 2 && absRankOffset == 1) || (absFileOffset == 1 && absRankOffset == 2))
                 return true;
             else return false;

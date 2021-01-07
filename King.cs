@@ -22,22 +22,22 @@ namespace ChessGame
             }
         }
 
-        public override void FindValidMoves(Piece[,] board, Position position, int turnCount, Position king, List<Position> attackingPieces, ref Position enPassant)
+        public override void FindValidMoves(Gamestate gamestate, Position position)
         {
-            FindPseudoValidMoves(board, position);
-       
+            FindPseudoValidMoves(gamestate.Board, position);
+            var attackingPieces = this.Color == Color.WHITE ? gamestate.blackPiecesPositions : gamestate.whitePiecesPositions;
             var movesToDelete = new List<Position>();
 
-            board[position.File, position.Rank] = null;
+            gamestate.Board[position.File, position.Rank] = null;
             foreach(var move in ValidMoves)
             {
-                var previousPiece = board[move.File, move.Rank];
-                board[move.File, move.Rank] = this;
+                var previousPiece = gamestate.Board[move.File, move.Rank];
+                gamestate.Board[move.File, move.Rank] = this;
                 foreach(var piece in attackingPieces)
                 {
                     if(!(piece.File == move.File && piece.Rank == move.Rank))
                     {
-                        if (board[piece.File, piece.Rank].IsAttackingSquare(piece, move, board))
+                        if (gamestate.Board[piece.File, piece.Rank].IsAttackingSquare(piece, move, gamestate.Board))
                         {
                             movesToDelete.Add(move);
                             break;
@@ -45,33 +45,12 @@ namespace ChessGame
                             
                     }
                 }
-                board[move.File, move.Rank] = previousPiece;
+                gamestate.Board[move.File, move.Rank] = previousPiece;
             }
-            board[position.File, position.Rank] = this;
+            gamestate.Board[position.File, position.Rank] = this;
             ValidMoves.RemoveAll(m => movesToDelete.Contains(m));
-            CanCastle(position, board, attackingPieces);
+            CanCastle(gamestate);
 
-            /* check for castling
-             * rules: 
-             * king moves 2 squares left or right and rook is moved to the square that king crossed
-             * neither the king nor rook has moved this game
-             * no pieces between king and rook
-             * king is not in check
-             * king does not pass by square attacked by enemy piece
-             * king does not end up in check
-            */
-            /*
-            bool isChecked()
-            {
-                foreach(var piece in enemyPieces)
-                {
-                    board[piece.File, piece.Rank].FindPseudoValidMoves(board, piece);
-                    if (board[piece.File, piece.Rank].ValidMoves.Find(m => m.File == position.File && m.Rank == position.Rank) != null)
-                        return true;
-                }
-                return false;
-            }
-            */
            
 
         }
@@ -85,73 +64,58 @@ namespace ChessGame
             else return false;
         }
 
-        public (bool, bool) CanCastle(Position position, Piece[,] board, List<Position> attackingPieces)
+        public void CanCastle(Gamestate gamestate)
         {
-            bool kingside = false;
-            bool queenside = false;
+            var attackingPieces = this.Color == Color.WHITE ? gamestate.blackPiecesPositions : gamestate.whitePiecesPositions;
             bool areSquaresAttacked(Position[] squares)
             {
                 foreach (var piece in attackingPieces)
                 {
                     foreach (var square in squares)
                     {
-                        if (board[piece.File, piece.Rank].IsAttackingSquare(piece, square, board))
+                        if (gamestate.Board[piece.File, piece.Rank].IsAttackingSquare(piece, square, gamestate.Board))
                             return true;
                     }
                 }
                 return false;
             }
-            if (lastMoved == 0)
+            if (this.Color == Color.WHITE)
             {
-                //white king kingside castle
                 var squares = new Position[3] { new Position('E', 1), new Position('F', 1), new Position('G', 1) };
-                if (this.Color == Color.WHITE && board[5, 0] == null && board[6, 0] == null &&
-                    board[7, 0] != null && board[7, 0].GetType() == typeof(Rook) &&
-                    board[7, 0].Color == Color.WHITE && board[7, 0].lastMoved == 0 &&
+                if (gamestate.WhiteCanCastleKingside && 
+                    gamestate.Board[5, 0] == null && 
+                    gamestate.Board[6, 0] == null &&
                     !areSquaresAttacked(squares))
-                {
                     ValidMoves.Add(new Position('G', 1));
-                    kingside = true;
-                }
-                    
-                //white king queenside castle
+
                 squares[1] = new Position('D', 1);
                 squares[2] = new Position('C', 1);
-                if (this.Color == Color.WHITE && board[1, 0] == null && board[2, 0] == null && board[3, 0] == null &&
-                    board[0, 0] != null && board[0, 0].GetType() == typeof(Rook) &&
-                    board[0, 0].Color == Color.WHITE && board[0, 0].lastMoved == 0 &&
+                if (gamestate.WhiteCanCastleQueenside &&
+                    gamestate.Board[1, 0] == null &&
+                    gamestate.Board[2, 0] == null &&
+                    gamestate.Board[3, 0] == null &&
                     !areSquaresAttacked(squares))
-                {
                     ValidMoves.Add(new Position('C', 1));
-                    queenside = true;
-                }
-                    
-                //black king kingside castle
-                squares[0] = new Position('E', 8);
-                squares[1] = new Position('F', 8);
-                squares[2] = new Position('G', 8);
-                if (this.Color == Color.BLACK && board[5, 7] == null && board[6, 7] == null &&
-                    board[7, 7] != null && board[7, 7].GetType() == typeof(Rook) &&
-                    board[7, 7].Color == Color.BLACK && board[7, 7].lastMoved == 0 &&
+            }
+            else
+            {
+                var squares = new Position[3] { new Position('E', 8), new Position('F', 8), new Position('G', 8) };
+                if (gamestate.BlackCanCastleKingside &&
+                    gamestate.Board[5, 7] == null &&
+                    gamestate.Board[6, 7] == null &&
                     !areSquaresAttacked(squares))
-                {
                     ValidMoves.Add(new Position('G', 8));
-                    kingside = true;
-                }
-                    
-                //black king queenside castle
+
                 squares[1] = new Position('D', 8);
                 squares[2] = new Position('C', 8);
-                if (this.Color == Color.BLACK && board[1, 7] == null && board[2, 7] == null && board[3, 7] == null &&
-                    board[0, 7] != null && board[0, 7].GetType() == typeof(Rook) &&
-                    board[0, 7].Color == Color.BLACK && board[0, 7].lastMoved == 0 &&
+                if (gamestate.BlackCanCastleQueenside &&
+                    gamestate.Board[1, 7] == null &&
+                    gamestate.Board[2, 7] == null &&
+                    gamestate.Board[3, 7] == null &&
                     !areSquaresAttacked(squares))
-                {
                     ValidMoves.Add(new Position('C', 8));
-                    queenside = true;
-                } 
             }
-            return (kingside, queenside);
+
         }
         public King(Color color) : base(color)
         {

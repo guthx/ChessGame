@@ -21,7 +21,7 @@ namespace ChessGame
         }
         public override string ToString()
         {
-            char fileChar = (char)('A' + File);
+            char fileChar = char.ToLower((char)('A' + File));
             char rankChar = char.Parse((Rank + 1).ToString());
             return $"{fileChar}{rankChar}";
         }
