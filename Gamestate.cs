@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace ChessGame
@@ -18,25 +19,26 @@ namespace ChessGame
         public GameResult GameResult;
         public Stopwatch WhiteStopwatch;
         public Stopwatch BlackStopwatch;
-        protected Position WhiteKing;
-        protected Position BlackKing;
-        protected List<Position> whitePiecesPositions;
-        protected List<Position> blackPiecesPositions;
-        public bool WhiteCanCastleQueenside;
-        public bool WhiteCanCastleKingside;
-        public bool BlackCanCastleQueenside;
-        public bool BlackCanCastleKingside;
-        public Position EnPassantPosition;
-        public int HalfMoveCount;
         public List<string> PositionHistory;
+        public (Position, Position) LastMove;
+
+        private Position WhiteKing;
+        private Position BlackKing;
+        private List<Position> whitePiecesPositions;
+        private List<Position> blackPiecesPositions;
+        protected bool WhiteCanCastleQueenside;
+        private bool WhiteCanCastleKingside;
+        private bool BlackCanCastleQueenside;
+        private bool BlackCanCastleKingside;
+        private Position EnPassantPosition;
+        private int HalfMoveCount;
         private Dictionary<string, int> positionRepetitionCount;
-        private bool Checkmate;
+
         public Gamestate()
         {
             HalfMoveCount = 0;
             GameResult = GameResult.ACTIVE;
             GameOver = false; 
-            Checkmate = false;
             TurnCount = 1;
             ToMove = Color.WHITE;
             Board = new Piece[8, 8];
@@ -105,7 +107,7 @@ namespace ChessGame
                         
                 }
             }
-            string fen = FEN.GamstateToFEN(this);
+            string fen = GamstateToFEN(this);
             PositionHistory.Add(fen);
             positionRepetitionCount.Add(fen, 1);
         }
@@ -148,7 +150,7 @@ namespace ChessGame
                 return MoveResult.INVALID_MOVE;
             else
             {
-                
+                LastMove = (src, dst);
                 if (Board[dst.File, dst.Rank] != null)
                     HalfMoveCount = 0;
                 Board[dst.File, dst.Rank] = piece;
@@ -263,10 +265,78 @@ namespace ChessGame
             }
         }
 
+        public static string GamstateToFEN(Gamestate gamestate)
+        {
+            var builder = new StringBuilder();
+            int r, f, empty;
+            //board state
+            for (r = 7; r >= 0; r--)
+            {
+                empty = 0;
+                for (f = 0; f < 8; f++)
+                {
+                    if (gamestate.Board[f, r] != null)
+                    {
+                        if (empty > 0)
+                        {
+                            builder.Append(empty);
+                            empty = 0;
+                        }
+                        builder.Append(gamestate.Board[f, r].Symbol);
+                    }
+                    else
+                        empty++;
+                }
+                if (empty > 0)
+                    builder.Append(empty);
+                builder.Append('/');
+            }
+            builder.Append(' ');
+
+            //to move
+            if (gamestate.ToMove == Color.WHITE)
+                builder.Append('w');
+            else
+                builder.Append('b');
+            builder.Append(' ');
+
+            //possibility of castling
+            string castling = "";
+            if (gamestate.WhiteCanCastleKingside)
+                castling.Append('K');
+            if (gamestate.WhiteCanCastleQueenside)
+                castling.Append('Q');
+            if (gamestate.BlackCanCastleKingside)
+                castling.Append('k');
+            if (gamestate.BlackCanCastleQueenside)
+                castling.Append('q');
+            if (castling == "")
+                castling = "-";
+            builder.Append(castling);
+            builder.Append(' ');
+
+            //possiblity of en-passant
+            if (gamestate.EnPassantPosition != null)
+                builder.Append(gamestate.EnPassantPosition.ToString());
+            else
+                builder.Append('-');
+            // builder.Append(' ');
+
+            /*
+            //number of half-moves since last take or pawn move
+            builder.Append(gamestate.HalfMoveCount);
+            builder.Append(' ');
+
+            //number of full-moves
+            builder.Append((gamestate.TurnCount - 1) / 2);
+            */
+            return builder.ToString();
+        }
+
         private MoveResult SwapPlayer()
         {
             EnPassantPosition = null;
-            Checkmate = true;
+            var gameOver = true;
             TurnCount++;
             HalfMoveCount++;
             if (ToMove == Color.WHITE)
@@ -291,7 +361,7 @@ namespace ChessGame
                         {
                             Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, BlackKing, whitePiecesPositions, ref EnPassantPosition);
                             if (Board[f, r].ValidMoves.Count > 0)
-                                Checkmate = false;
+                                gameOver = false;
                         }
 
                     }
@@ -326,7 +396,7 @@ namespace ChessGame
                         {
                             Board[f, r].FindValidMoves(Board, new Position(f, r), TurnCount, WhiteKing, blackPiecesPositions, ref EnPassantPosition);
                             if (Board[f, r].ValidMoves.Count > 0)
-                                Checkmate = false;
+                                gameOver = false;
                         }
 
                     }
@@ -338,13 +408,13 @@ namespace ChessGame
                 BlackCanCastleQueenside = q;
                 WhiteStopwatch.Restart();
             }
-            string fen = FEN.GamstateToFEN(this);
+            string fen = GamstateToFEN(this);
             PositionHistory.Add(fen);
             if (positionRepetitionCount.ContainsKey(fen))
                 positionRepetitionCount[fen] += 1;
             else
                 positionRepetitionCount[fen] = 1;
-            if (Checkmate == false)
+            if (gameOver == false)
             {
                 if (positionRepetitionCount[fen] == 3 || HalfMoveCount >= 50)
                 {
