@@ -44,6 +44,17 @@ namespace ChessGame
             gamestate.Board[position.File, position.Rank] = this;
             ValidMoves.RemoveAll(m => movesToDelete.Contains(m));
         }
+        virtual public bool IsAttacked(Gamestate gamestate, Position position)
+        {
+            var attackingPieces = this.Color == Color.WHITE ? gamestate.blackPiecesPositions : gamestate.whitePiecesPositions;
+
+            foreach (var piece in attackingPieces)
+            {
+                if (gamestate.Board[piece.File, piece.Rank].IsAttackingSquare(piece, position, gamestate.Board))
+                    return true;
+            }
+            return false;
+        }
         public Piece(Color color)
         {
             Color = color;

@@ -16,11 +16,13 @@ namespace ChessGame
         public int TurnCount;
         public Position awaitingPromotion;
         public bool GameOver;
+        public bool Check;
         public GameResult GameResult;
         public Stopwatch WhiteStopwatch;
         public Stopwatch BlackStopwatch;
         public List<string> PositionHistory;
-        public (Position, Position) LastMove;
+        public List<string> MoveHistory;
+        public List<(Position from, Position to)> LastMoves;
         public Position WhiteKing;
         public Position BlackKing;
         public List<Position> whitePiecesPositions;
@@ -46,11 +48,14 @@ namespace ChessGame
             whitePiecesPositions = new List<Position>();
             blackPiecesPositions = new List<Position>();
             PositionHistory = new List<string>();
+            MoveHistory = new List<string>();
+            LastMoves = new List<(Position from, Position to)>();
             positionRepetitionCount = new Dictionary<string, int>();
             WhiteCanCastleKingside = true;
             WhiteCanCastleQueenside = true;
             BlackCanCastleKingside = true;
             BlackCanCastleQueenside = true;
+            Check = false;
             //initialize white side
             for(int f=0; f<8; f++)
             {
@@ -123,17 +128,20 @@ namespace ChessGame
             WhiteStopwatch = new Stopwatch();
             BlackStopwatch = new Stopwatch();
             positionRepetitionCount = new Dictionary<string, int>();
+            LastMoves = new List<(Position from, Position to)>();
             if (gamestate == null)
             {
                 PositionHistory = new List<string>();
                 PositionHistory.Add(fen);
+                MoveHistory = new List<string>();
             }
             else
             {
-                int halfTurnCount = gamestate.TurnCount * 2;
-                if (gamestate.ToMove == Color.WHITE)
-                    halfTurnCount--;
+                int halfTurnCount = (gamestate.TurnCount-1) * 2;
+                if (gamestate.ToMove == Color.BLACK)
+                    halfTurnCount++;
                 PositionHistory = gamestate.PositionHistory.Take(halfTurnCount).ToList();
+                MoveHistory = gamestate.MoveHistory.Take(halfTurnCount - 1).ToList();
                 foreach(var position in PositionHistory)
                 {
                     string fenNoMoveCount = String.Join(" ", position.Split(' ').Take(4));
@@ -154,61 +162,75 @@ namespace ChessGame
                 {
                     case 'Q':
                         Board[f, r] = new Queen(Color.WHITE);
+                        Board[f, r].ValidMoves = new List<Position>();
                         whitePiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'q':
                         Board[f, r] = new Queen(Color.BLACK);
+                        Board[f, r].ValidMoves = new List<Position>();
                         blackPiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'K':
                         Board[f, r] = new King(Color.WHITE);
+                        Board[f, r].ValidMoves = new List<Position>();
                         whitePiecesPositions.Add(new Position(f, r));
+                        WhiteKing = new Position(f, r);
                         f++;
                         break;
                     case 'k':
                         Board[f, r] = new King(Color.BLACK);
+                        Board[f, r].ValidMoves = new List<Position>();
                         blackPiecesPositions.Add(new Position(f, r));
+                        BlackKing = new Position(f, r);
                         f++;
                         break;
                     case 'R':
                         Board[f, r] = new Rook(Color.WHITE);
+                        Board[f, r].ValidMoves = new List<Position>();
                         whitePiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'r':
                         Board[f, r] = new Rook(Color.BLACK);
+                        Board[f, r].ValidMoves = new List<Position>();
                         blackPiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'N':
                         Board[f, r] = new Knight(Color.WHITE);
+                        Board[f, r].ValidMoves = new List<Position>();
                         whitePiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'n':
                         Board[f, r] = new Knight(Color.BLACK);
+                        Board[f, r].ValidMoves = new List<Position>();
                         blackPiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'B':
                         Board[f, r] = new Bishop(Color.WHITE);
+                        Board[f, r].ValidMoves = new List<Position>();
                         whitePiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'b':
                         Board[f, r] = new Bishop(Color.BLACK);
+                        Board[f, r].ValidMoves = new List<Position>();
                         blackPiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'P':
                         Board[f, r] = new Pawn(Color.WHITE);
+                        Board[f, r].ValidMoves = new List<Position>();
                         whitePiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
                     case 'p':
                         Board[f, r] = new Pawn(Color.BLACK);
+                        Board[f, r].ValidMoves = new List<Position>();
                         blackPiecesPositions.Add(new Position(f, r));
                         f++;
                         break;
@@ -281,13 +303,74 @@ namespace ChessGame
                 {
                     if (Board[f, r] != null)
                     {
-                        Board[f, r].ValidMoves = new List<Position>();
-                        if (r == 0 || r == 1)
-                            Board[f, r].FindValidMoves(this, new Position(f, r));
+                        Board[f, r].FindValidMoves(this, new Position(f, r));
                     }
 
                 }
             }
+        }
+
+        public static Piece[,] GetBoardFromFen(string fen)
+        {
+            var board = new Piece[8, 8];
+            var splitFen = fen.Split(' ');
+            int f = 0, r = 7;
+            foreach (char square in splitFen[0])
+            {
+                switch (square)
+                {
+                    case 'Q':
+                        board[f, r] = new Queen(Color.WHITE);
+                        f++;
+                        break;
+                    case 'q':
+                        board[f, r] = new Queen(Color.BLACK);
+                        f++;
+                        break;
+                    case 'K':
+                        board[f, r] = new King(Color.WHITE);
+                        f++;
+                        break;
+                    case 'k':
+                        board[f, r] = new King(Color.BLACK);
+                        f++;
+                        break;
+                    case 'R':
+                        board[f, r] = new Rook(Color.WHITE);
+                        break;
+                    case 'r':
+                        board[f, r] = new Rook(Color.BLACK);
+                        break;
+                    case 'N':
+                        board[f, r] = new Knight(Color.WHITE);
+                        break;
+                    case 'n':
+                        board[f, r] = new Knight(Color.BLACK);
+                        break;
+                    case 'B':
+                        board[f, r] = new Bishop(Color.WHITE);
+                        break;
+                    case 'b':
+                        board[f, r] = new Bishop(Color.BLACK);
+                        break;
+                    case 'P':
+                        board[f, r] = new Pawn(Color.WHITE);
+                        break;
+                    case 'p':
+                        board[f, r] = new Pawn(Color.BLACK);
+                        break;
+                    case '/':
+                        f = 0;
+                        r--;
+                        break;
+                    default:
+                        int n = int.Parse(square.ToString());
+                        for (int i = 0; i < n; i++)
+                            f++;
+                        break;
+                }
+            };
+            return board;
         }
         public MoveResult Promote(PieceType piece)
         {
@@ -297,18 +380,23 @@ namespace ChessGame
                 {
                     case PieceType.KNIGHT:
                         Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Knight(ToMove);
+                        MoveHistory[MoveHistory.Count - 1] = MoveHistory.Last() + 'N';
                         break;
                     case PieceType.BISHOP:
                         Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Bishop(ToMove);
+                        MoveHistory[MoveHistory.Count - 1] = MoveHistory.Last() + 'B';
                         break;
                     case PieceType.ROOK:
                         Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Rook(ToMove);
+                        MoveHistory[MoveHistory.Count - 1] = MoveHistory.Last() + 'R';
                         break;
                     case PieceType.QUEEN:
                         Board[awaitingPromotion.File, awaitingPromotion.Rank] = new Queen(ToMove);
+                        MoveHistory[MoveHistory.Count - 1] = MoveHistory.Last() + 'R';
                         break;
                 }
                 awaitingPromotion = null;
+                
                 return SwapPlayer();
             }
             return MoveResult.NO_PIECE;
@@ -327,13 +415,45 @@ namespace ChessGame
                 return MoveResult.INVALID_MOVE;
             else
             {
+                LastMoves.Clear();
+                LastMoves.Add((src, dst));
+                Check = false;
+                bool takes = false, sameFile = false, sameRank = false, qsCastle = false, ksCastle = false;
+                List<Position> conflictingPieces;
+                if (piece.Color == Color.WHITE)
+                {
+                    conflictingPieces = whitePiecesPositions
+                        .FindAll(p => Board[p.File, p.Rank] != piece &&
+                        Board[p.File, p.Rank].Type == piece.Type && 
+                        Board[p.File, p.Rank].ValidMoves.Contains(dst));
+                    
+                }
+                else
+                {
+                    conflictingPieces = blackPiecesPositions
+                        .FindAll(p => Board[p.File, p.Rank] != piece &&
+                        Board[p.File, p.Rank].Type == piece.Type &&
+                        Board[p.File, p.Rank].ValidMoves.Contains(dst));
+                }
+                foreach (var conflictingPiece in conflictingPieces)
+                {
+                    if (conflictingPiece.File == src.File)
+                        sameFile = true;
+                    if (conflictingPiece.Rank == src.Rank)
+                        sameRank = true;
+                }
+                StringBuilder moveNotation = new StringBuilder();
+                HalfMoveCount++;
                 Position enPassantPosition = null;
                 if (EnPassantPosition != null)
                     enPassantPosition = new Position(EnPassantPosition.File, EnPassantPosition.Rank);
                 EnPassantPosition = null;
-                LastMove = (src, dst);
                 if (Board[dst.File, dst.Rank] != null)
+                {
                     HalfMoveCount = 0;
+                    takes = true;
+                }
+                    
                 Board[dst.File, dst.Rank] = piece;
                 Board[src.File, src.Rank] = null;
                 if (ToMove == Color.WHITE)
@@ -374,9 +494,11 @@ namespace ChessGame
                             blackPiecesPositions.Remove(new Position(7, src.Rank));
                             blackPiecesPositions.Add(new Position(5, src.Rank));
                         }
+                        ksCastle = true;
+                        LastMoves.Add((new Position(7, src.Rank), new Position(5, src.Rank)));
                     }
                     //queenside castle
-                    if(dst.File - src.File == -2)
+                    else if(dst.File - src.File == -2)
                     {
                         Board[3, src.Rank] = Board[0, src.Rank];
                         Board[0, src.Rank] = null;
@@ -390,6 +512,8 @@ namespace ChessGame
                             blackPiecesPositions.Remove(new Position(0, src.Rank));
                             blackPiecesPositions.Add(new Position(3, src.Rank));
                         }
+                        qsCastle = true;
+                        LastMoves.Add((new Position(0, src.Rank), new Position(3, src.Rank)));
                     }
                     if (piece.Color == Color.WHITE)
                         WhiteKing = dst;
@@ -407,12 +531,16 @@ namespace ChessGame
                         {
                             Board[dst.File, dst.Rank - 1] = null;
                             blackPiecesPositions.Remove(new Position(dst.File, dst.Rank - 1));
+                            LastMoves.Add((new Position(dst.File, dst.Rank - 1), null));
                         }
                         else
                         {
                             Board[dst.File, dst.Rank + 1] = null;
                             whitePiecesPositions.Remove(new Position(dst.File, dst.Rank + 1));
-                        }    
+                            LastMoves.Add((new Position(dst.File, dst.Rank + 1), null));
+                        }
+                        takes = true;
+                        
                     }
 
                     //check if pawn moved two squares
@@ -428,7 +556,6 @@ namespace ChessGame
                     if(dst.Rank == 0 || dst.Rank == 7)
                     {
                         awaitingPromotion = new Position(dst.File, dst.Rank);
-                        return MoveResult.AWAITING_PROMOTION;
                     }
                 }
 
@@ -451,7 +578,31 @@ namespace ChessGame
                     }
                 }
 
-                return SwapPlayer();
+                if (ksCastle)
+                    moveNotation.Append("0-0");
+                else if (qsCastle)
+                    moveNotation.Append("0-0-0");
+                else
+                {
+                    if (piece.Type != PieceType.PAWN)
+                        moveNotation.Append(char.ToUpper(piece.Symbol));
+                    else if (takes)
+                        sameRank = true;
+                    if (sameRank)
+                        moveNotation.Append(char.ToLower((char)(src.File + 65)));
+                    if (sameFile)
+                        moveNotation.Append(src.Rank + 1);
+                    if (takes)
+                        moveNotation.Append('x');
+                    moveNotation.Append(char.ToLower((char)(dst.File + 65)));
+                    moveNotation.Append(dst.Rank + 1);
+                }
+                MoveHistory.Add(moveNotation.ToString());
+
+                if (awaitingPromotion != null)
+                    return MoveResult.AWAITING_PROMOTION;
+                else
+                    return SwapPlayer();
 
                 
             }
@@ -493,7 +644,7 @@ namespace ChessGame
             builder.Append(' ');
 
             //possibility of castling
-            string castling = "";
+            StringBuilder castling = new StringBuilder();
             if (gamestate.WhiteCanCastleKingside)
                 castling.Append('K');
             if (gamestate.WhiteCanCastleQueenside)
@@ -502,9 +653,9 @@ namespace ChessGame
                 castling.Append('k');
             if (gamestate.BlackCanCastleQueenside)
                 castling.Append('q');
-            if (castling == "")
-                castling = "-";
-            builder.Append(castling);
+            if (castling.Length == 0)
+                castling.Append('-');
+            builder.Append(castling.ToString());
             builder.Append(' ');
 
             //possiblity of en-passant
@@ -520,7 +671,7 @@ namespace ChessGame
             builder.Append(' ');
 
             //number of full-moves
-            builder.Append((gamestate.TurnCount - 1) / 2);
+            builder.Append(gamestate.TurnCount);
             
             return builder.ToString();
         }
@@ -531,7 +682,7 @@ namespace ChessGame
         {
             var gameOver = true;
             
-            HalfMoveCount++;
+            
             if (ToMove == Color.WHITE)
             {
                 WhiteStopwatch.Stop();
@@ -549,6 +700,12 @@ namespace ChessGame
                         }
 
                     }
+                }
+
+                if (Board[BlackKing.File, BlackKing.Rank].IsAttacked(this, BlackKing))
+                {
+                    Check = true;
+                    MoveHistory[MoveHistory.Count - 1] = MoveHistory.Last() + '+';
                 }
 
                 BlackStopwatch.Restart();
@@ -572,6 +729,11 @@ namespace ChessGame
                         }
 
                     }
+                }
+                if (Board[WhiteKing.File, WhiteKing.Rank].IsAttacked(this, WhiteKing))
+                {
+                    Check = true;
+                    MoveHistory[MoveHistory.Count - 1] = MoveHistory.Last() + '+';
                 }
                 WhiteStopwatch.Restart();
             }
